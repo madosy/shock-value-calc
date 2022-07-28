@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shock Value Calculator</title>
+    <style>
+        form {
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin: 10px;
+        }
+        input[type=number]{
+            width: 40px;
+            height: 20px;
+        }
+        input::placeholder {
+            font-size: 12px;
+        }
+        span {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <form id="shockForm" action="javascript:void(0);">
+    <label>"max-x": [ <input class="coord" id="x_coord" type="text" placeholder="0,0,0"> ] <span id="x_error"></span></label>
+    <label>"max-y": [ <input class="coord" id="y_coord" type="text" placeholder="0,0,0"> ] <span id="y_error"></span></label>
+    <label>"max-z": [ <input class="coord" id="z_coord" type="text" placeholder="0,0,0"> ] <span id="z_error"></span></label>
+    <input type="submit" id="calc" onclick="getShockValue()">
+    </form>
+    <div id="shock_result"></div>
+
+    <script>
+        shock_result = document.getElementById('shock_result');
+        input_error = document.querySelectorAll('span');
+        calc_button = document.getElementById('calc');
+        // calc_button.addEventListener('click', getShockValue);
+
+        const calcDist = (text) => {
+            [x1,y1,z1] = text.split(',')
+            return Math.sqrt((0 - x1)**2 + (0 - y1)**2 + (0 - z1)**2 )
+        }
+
+        function getShockValue() {
+            let myCoord = Array.from(document.querySelectorAll('input.coord')).map(item => item.value);
+            let shockVals = [];
+            myCoord.forEach ((item,ind) => {
+                if (item.length < 5) {
+                    input_error[ind].textContent = "invalid input format!" 
+                } else {
+                    input_error[ind].textContent = '';
+                    shockVals.push(calcDist(item));
+                }
+            });
+            let topShockVal = Math.max(...shockVals);
+            shock_result.textContent = `Recorded shock value: ${Math.floor(topShockVal)}`
+        }
+    </script>
+</div>
+</body>
+</html>
