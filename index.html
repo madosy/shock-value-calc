@@ -6,60 +6,129 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shock Value Calculator</title>
     <style>
-        form {
+        body {
+            font-family:Arial, Helvetica, sans-serif;
+        }
+
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 500px 1fr;
+            grid-template-rows: 50px 1fr;
+        }
+
+        .container {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        textarea{
+            width:500px;
+        }
+
+        .result {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .time{
+            font-size: 0.7rem;
+            font-weight: bold;
+            position: absolute;
+            margin-top: -10px;
+            right: 10px;
+        }
+
+        .shock-result {
+            position: relative;
+            width: 500px;
+            background-color: #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            list-style-type: none;
             margin-bottom: 10px;
         }
-        label {
-            display: block;
-            margin: 10px;
+        
+        li.main {
+            font-size: 0.9rem;
         }
-        input[type=number]{
-            width: 40px;
-            height: 20px;
+
+        li.sub{
+            font-size: 0.7rem;
+            margin-top: 5px;
+            margin-left: 15px;
         }
-        input::placeholder {
-            font-size: 12px;
-        }
-        span {
-            color: red;
+
+        .shockval{
+            margin-left: 15px;
+            font-family: 'Courier New', Courier, monospace;
         }
     </style>
 </head>
 <body>
-<div>
-    <form id="shockForm" action="javascript:void(0);">
-    <label>"max-x": [ <input class="coord" id="x_coord" type="text" placeholder="0,0,0"> ] <span id="x_error"></span></label>
-    <label>"max-y": [ <input class="coord" id="y_coord" type="text" placeholder="0,0,0"> ] <span id="y_error"></span></label>
-    <label>"max-z": [ <input class="coord" id="z_coord" type="text" placeholder="0,0,0"> ] <span id="z_error"></span></label>
-    <input type="submit" id="calc" onclick="getShockValue()">
-    </form>
-    <div id="shock_result"></div>
+    <div class="grid-container">
+        <div class="container">
+            <textarea name="freefall" id="freefall" cols="30" rows="10">
+                2023-01-11T12:42:35.433219-05:00;    info;  6652; [free_fall_record.ini]  {"time":"2021-11-06 13:29:17","type":"online","if_in_holder":"NO_HOLDER","raw-data":{"max-x":[-244,-184,-158],"max-y":[22,268,50],"max-z":[32,-186,748]}},
+                2023-01-11T12:42:35.433225-05:00;    info;  6652; [free_fall_record.ini]  {"time":"2021-11-09 10:00:16","type":"online","if_in_holder":"NO_HOLDER","raw-data":{"max-x":[-5000,70,270],"max-y":[-154,-1558,-1194],"max-z":[-154,-1558,-1194]}},
+                2023-01-11T12:42:35.433230-05:00;    info;  6652; [free_fall_record.ini]  {"time":"2021-11-09 10:00:24","type":"online","if_in_holder":"NO_HOLDER","raw-data":{"max-x":[326,-158,150],"max-y":[-62,170,-284],"max-z":[-138,-56,972]}},
+                </textarea>
+                <p>
+                    <button id="calc" onclick="grabText(); printResult()">Calculate Shock Values</button>
+                </p>
+                
+                <div class="result"></div>
+        </div>
+    </div>
 
     <script>
-        shock_result = document.getElementById('shock_result');
-        input_error = document.querySelectorAll('span');
-        calc_button = document.getElementById('calc');
-        // calc_button.addEventListener('click', getShockValue);
-
-        const calcDist = (text) => {
-            [x1,y1,z1] = text.split(',')
-            return Math.sqrt((0 - x1)**2 + (0 - y1)**2 + (0 - z1)**2 )
+        const curlyRegex = new RegExp(/{(.*?)}}/g)
+        let freefall_json = ''
+        
+        function grabText() {
+            const freefall_text = document.querySelector('#freefall').value;
+            const freefall_arr = freefall_text.match(curlyRegex);
+            freefall_json = freefall_arr.map(record => JSON.parse(record))
+        }
+        
+        const calcDist = (arg) => {
+            [x,y,z] = arg;
+            return Math.sqrt((0 - x)**2 + (0 - y)**2 + (0 - z)**2 )
         }
 
-        function getShockValue() {
-            let myCoord = Array.from(document.querySelectorAll('input.coord')).map(item => item.value);
-            let shockVals = [];
-            myCoord.forEach ((item,ind) => {
-                if (item.length < 5) {
-                    input_error[ind].textContent = "invalid input format!" 
-                } else {
-                    input_error[ind].textContent = '';
-                    shockVals.push(calcDist(item));
-                }
+        function getShockVal(record) {
+            const rawX = record["raw-data"]["max-x"]
+            const rawY = record["raw-data"]["max-y"]
+            const rawZ = record["raw-data"]["max-z"]
+            const shockVal = Math.max(calcDist(rawX), calcDist(rawY), calcDist(rawZ))
+
+            return Math.floor(shockVal)
+        }
+
+        function printResult() {
+            const result_div = document.querySelector('.result');
+            result_div.textContent = ''
+            freefall_json.forEach(record => {
+                const shockVal = getShockVal(record)
+                result_div.innerHTML += `<div class="shock-result">
+                    <span class="time">${record.time}</span>
+                            <li class="main"><b>Recorded Shock Value:</b> <span class='shockval'>${shockVal}</span>
+                            <li class="sub">Holder Status: ${record.if_in_holder}</li>
+                            <li class="sub">Power Status: ${record.type}</li>
+                        </div>`
             });
-            let topShockVal = Math.max(...shockVals);
-            shock_result.textContent = `Recorded shock value: ${Math.floor(topShockVal)}`
+
+            const shockVals = document.querySelectorAll('.shockval')
+            shockVals.forEach (item => {
+                if (parseInt(item.textContent) > 4000) item.parentElement.parentElement.style.backgroundColor = 'yellow'
+            });
         }
+
+        grabText()
+        printResult()
     </script>
 </div>
 </body>
